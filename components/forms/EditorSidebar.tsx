@@ -1,7 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import type { FormController } from "@/lib/use-form-generator";
-import SpotlightCard from "@/components/react-bits/SpotlightCard";
 import { fieldList, type FieldType } from "@/lib/forms";
 export default function EditorSidebar({
   controller,
@@ -29,15 +28,7 @@ export default function EditorSidebar({
   return (
     <aside className="palette-rail">
       {!responding && (
-        <SpotlightCard
-          theme="dark"
-          spotlightColor="#ff7d43"
-          intensity={0.15}
-          proximity={0}
-          flare={false}
-          grain={0}
-          className="palette-tools"
-        >
+        <section id="field-settings" className="palette-tools">
           <form className="space-y-4" onSubmit={addField}>
             <h2 className="text-lg font-semibold">
               {editingFieldId === null
@@ -123,7 +114,7 @@ export default function EditorSidebar({
               </Button>
             )}
           </form>
-        </SpotlightCard>
+        </section>
       )}
       <section className="palette-note">
         <h2 className="font-semibold">Votre espace local</h2>

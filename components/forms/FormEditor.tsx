@@ -3,8 +3,7 @@ import { Input } from "@/components/ui/input";
 import type { FormController } from "@/lib/use-form-generator";
 import { DragDropContext, Draggable, Droppable } from "@hello-pangea/dnd";
 import FieldControl from "./FieldControl";
-import { blankResponse, fieldList } from "@/lib/forms";
-import { download } from "@/lib/storage";
+import { fieldList } from "@/lib/forms";
 export default function FormEditor({
   controller,
 }: {
@@ -12,25 +11,28 @@ export default function FormEditor({
 }) {
   const {
     responding,
+    previewing,
     draft,
     setDraft,
-    setResponding,
     submit,
     updateValue,
     writable,
     onDragEnd,
     move,
-    save,
     editField,
     duplicateField,
     removeField,
-    editingFieldId,
+    finishPreview,
   } = controller;
   return (
     <section className="panel document-sheet min-w-0">
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
         <h2 className="text-lg font-semibold">
-          {responding ? "Répondre au formulaire" : "Votre formulaire"}
+          {responding
+            ? previewing
+              ? "Tester le formulaire"
+              : "Répondre au formulaire"
+            : "Votre formulaire"}
         </h2>
         <span className="field-count">{draft.fields.length} champ(s)</span>
       </div>
@@ -60,9 +62,14 @@ export default function FormEditor({
               onChange={(value) => updateValue(field.id, value)}
             />
           ))}
-          <Button type="submit" disabled={!writable}>
-            Enregistrer la réponse
+          <Button type="submit" disabled={!previewing && !writable}>
+            {previewing ? "Vérifier la saisie" : "Enregistrer la réponse"}
           </Button>
+          {previewing && (
+            <Button type="button" variant="outline" onClick={finishPreview}>
+              Revenir à l’édition
+            </Button>
+          )}
         </form>
       ) : (
         <>
@@ -180,38 +187,6 @@ export default function FormEditor({
               )}
             </Droppable>
           </DragDropContext>
-          <div className="document-actions">
-            <Button
-              onClick={save}
-              disabled={
-                !writable || !draft.fields.length || editingFieldId !== null
-              }
-            >
-              Enregistrer le formulaire
-            </Button>
-            <Button
-              variant="outline"
-              onClick={() => {
-                setDraft(blankResponse(draft));
-                setResponding(true);
-              }}
-              disabled={!draft.fields.length || editingFieldId !== null}
-            >
-              Tester le formulaire
-            </Button>
-            <Button
-              variant="link"
-              disabled={!draft.fields.length}
-              onClick={() =>
-                download(
-                  "brouillon-formulaire.json",
-                  JSON.stringify([draft], null, 2),
-                )
-              }
-            >
-              Exporter le brouillon
-            </Button>
-          </div>
         </>
       )}
     </section>

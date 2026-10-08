@@ -231,6 +231,91 @@ test("les six autres types, édition, recherche, imports et exports fonctionnent
     page.getByRole("button", { name: "Réponses (1)" }),
   ).toBeVisible();
 });
+test("un nom non enregistré reste conservé si le remplacement est annulé", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await page
+    .getByLabel("Nom du formulaire", { exact: true })
+    .fill("Mon brouillon");
+  let confirmation = "";
+  page.once("dialog", async (dialog) => {
+    confirmation = dialog.message();
+    await dialog.dismiss();
+  });
+  await page
+    .getByRole("button", { name: "+ Nouveau formulaire", exact: true })
+    .click();
+  expect(confirmation).toContain("saisie non enregistrée");
+  await expect(
+    page.getByLabel("Nom du formulaire", { exact: true }),
+  ).toHaveValue("Mon brouillon");
+  page.once("dialog", (dialog) => dialog.accept());
+  await page
+    .getByRole("button", { name: "+ Nouveau formulaire", exact: true })
+    .click();
+  await expect(
+    page.getByLabel("Nom du formulaire", { exact: true }),
+  ).toHaveValue("Mon formulaire");
+});
+test("les réglages en cours survivent aux changements de document annulés", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await page.getByLabel("Libellé", { exact: true }).fill("Nom");
+  await page
+    .getByRole("button", { name: "Ajouter au formulaire", exact: true })
+    .click();
+  await page
+    .getByRole("button", { name: "Enregistrer le formulaire", exact: true })
+    .click();
+  const dialogs: string[] = [];
+  page.on("dialog", async (dialog) => {
+    dialogs.push(dialog.message());
+    await dialog.dismiss();
+  });
+  await page.getByRole("button", { name: "Modifier", exact: true }).click();
+  expect(dialogs).toEqual([]);
+  await page
+    .getByRole("button", { name: "Configurer Nom", exact: true })
+    .click();
+  await page.getByLabel("Libellé", { exact: true }).fill("Nom à conserver");
+  for (const action of [
+    "Modifier",
+    "Nouvelle réponse",
+    "Dupliquer le formulaire Mon formulaire",
+  ]) {
+    await page
+      .getByRole("button", { name: "Formulaires (1)", exact: true })
+      .click();
+    await page.getByRole("button", { name: action, exact: true }).click();
+    await page.getByRole("button", { name: "Éditeur", exact: true }).click();
+    await expect(page.getByLabel("Libellé", { exact: true })).toHaveValue(
+      "Nom à conserver",
+    );
+  }
+  await page.getByRole("button", { name: "Modèles", exact: true }).click();
+  await page
+    .getByRole("button", { name: "Utiliser Contact", exact: true })
+    .click();
+  await expect(page.getByLabel("Libellé", { exact: true })).toHaveValue(
+    "Nom à conserver",
+  );
+  expect(dialogs).toHaveLength(4);
+  expect(
+    dialogs.every((message) => message.includes("saisie non enregistrée")),
+  ).toBe(true);
+  await page
+    .getByRole("button", { name: "Annuler les réglages", exact: true })
+    .click();
+  await page
+    .getByRole("button", { name: "+ Nouveau formulaire", exact: true })
+    .click();
+  expect(dialogs).toHaveLength(4);
+  await expect(
+    page.getByLabel("Nom du formulaire", { exact: true }),
+  ).toHaveValue("Mon formulaire");
+});
 test("stockage corrompu ou indisponible : aucune écriture destructive", async ({
   page,
 }) => {
@@ -242,7 +327,7 @@ test("stockage corrompu ou indisponible : aucune écriture destructive", async (
   ).toBeDisabled();
   expect(await page.evaluate(() => localStorage.getItem("allForms"))).toBe("{");
 });
-for (const width of [1440, 390, 320]) {
+for (const width of [1440, 800, 390, 320]) {
   test(`navigation et formulaires sans débordement à ${width}px`, async ({
     page,
   }) => {
@@ -260,6 +345,27 @@ for (const width of [1440, 390, 320]) {
       ),
     ).toBe(true);
     await page.getByRole("button", { name: "Tester le formulaire" }).click();
+    await page
+      .getByLabel(
+        "Un libellé suffisamment long pour vérifier le retour à la ligne",
+      )
+      .fill("Mobile");
+    await page
+      .getByRole("button", { name: "Vérifier la saisie", exact: true })
+      .click();
+    await expect(page.getByRole("status")).toContainText("Test validé");
+    expect(
+      await page.evaluate(() => localStorage.getItem("allAnswers")),
+    ).toBeNull();
+    await page
+      .getByRole("button", { name: "Revenir à l’édition", exact: true })
+      .click();
+    await page
+      .getByRole("button", { name: "Enregistrer le formulaire", exact: true })
+      .click();
+    await page
+      .getByRole("button", { name: "Nouvelle réponse", exact: true })
+      .click();
     await page
       .getByLabel(
         "Un libellé suffisamment long pour vérifier le retour à la ligne",

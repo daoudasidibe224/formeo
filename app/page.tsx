@@ -3,10 +3,12 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { useFormGenerator } from "@/lib/use-form-generator";
 import { templates } from "@/lib/productivity";
+import { download } from "@/lib/storage";
 import EditorSidebar from "@/components/forms/EditorSidebar";
 import FormEditor from "@/components/forms/FormEditor";
 import FormCollection from "@/components/forms/FormCollection";
 import AnswerCollection from "@/components/forms/AnswerCollection";
+
 export default function Home() {
   const controller = useFormGenerator();
   const {
@@ -14,6 +16,7 @@ export default function Home() {
     answers,
     draft,
     responding,
+    previewing,
     view,
     setView,
     ready,
@@ -22,25 +25,59 @@ export default function Home() {
     exportBackup,
     loadTemplate,
     saving,
+    unsaved,
   } = controller;
   const [showTemplates, setShowTemplates] = useState(false);
+  const context =
+    view === "editor"
+      ? previewing
+        ? "Aperçu"
+        : responding
+          ? "Nouvelle réponse"
+          : "Création"
+      : view === "forms"
+        ? "Bibliothèque"
+        : "Résultats";
   return (
-    <main className="workbench">
+    <div className="workbench">
       <a href="#content" className="skip-link">
         Aller au contenu
       </a>
-      <header className="workbench-header">
-        <div className="workbench-title">
-          <h1>Atelier de formulaires</h1>
-          <span>Sans compte · Dans ce navigateur</span>
-        </div>
-        <div className="workbench-commandbar">
-          <div className="file-commands" aria-label="Actions du document">
+      <header className="studio-header">
+        <div className="studio-masthead">
+          <div className="studio-brand">
+            <svg viewBox="0 0 36 36" fill="none" aria-hidden="true">
+              <rect
+                x="3"
+                y="8"
+                width="22"
+                height="25"
+                rx="4"
+                fill="currentColor"
+                opacity=".16"
+              />
+              <path
+                d="M12 3h13l8 8v16a4 4 0 0 1-4 4H12a4 4 0 0 1-4-4V7a4 4 0 0 1 4-4Z"
+                stroke="currentColor"
+                strokeWidth="2"
+              />
+              <path
+                d="M25 3v8h8M14 17h12M14 23h8"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+              />
+            </svg>
+            <div>
+              <h1>Atelier de formulaires</h1>
+              <p>Un espace pour vos questions.</p>
+            </div>
+          </div>
+          <div className="studio-commands">
             <Button
               variant="outline"
               onClick={() => {
-                reset();
-                setShowTemplates(false);
+                if (reset()) setShowTemplates(false);
               }}
               disabled={!ready || saving}
             >
@@ -56,6 +93,8 @@ export default function Home() {
               Modèles
             </Button>
           </div>
+        </div>
+        <div className="studio-navigation">
           <nav aria-label="Navigation principale" className="workspace-tabs">
             {(
               [
@@ -66,7 +105,7 @@ export default function Home() {
             ).map(([key, label]) => (
               <Button
                 key={key}
-                variant={view === key ? "default" : "outline"}
+                variant="outline"
                 className="workspace-tab"
                 aria-current={view === key ? "page" : undefined}
                 onClick={() => {
@@ -78,87 +117,162 @@ export default function Home() {
               </Button>
             ))}
           </nav>
-        </div>
-        <div className="document-context">
-          <span>
-            {view === "editor"
-              ? responding
-                ? "SAISIE"
-                : "CONCEPTION"
-              : view === "forms"
-                ? "REGISTRE"
-                : "RÉSULTATS"}
-          </span>
-          <p>
-            {view === "editor"
-              ? draft.formName
-              : view === "forms"
-                ? "Vos documents enregistrés"
-                : "Analyser et exporter les réponses"}
+          <p className="local-label">
+            <span aria-hidden="true" />
+            Sans compte · Espace local
           </p>
-          <span>{saving ? "Enregistrement…" : "Espace local"}</span>
         </div>
       </header>
-      {showTemplates && (
-        <section
-          id="template-library"
-          className="template-library"
-          aria-label="Modèles de formulaires"
-        >
-          <div className="template-intro">
-            <h2>Partir d’un modèle</h2>
+      <main id="content" className="workspace-content" tabIndex={-1}>
+        <div className="document-context">
+          <div>
+            <span>{context}</span>
             <p>
-              Personnalisez les champs avant d’enregistrer. Les modèles ne
-              contiennent aucune réponse.
+              {view === "editor"
+                ? draft.formName
+                : view === "forms"
+                  ? "Bibliothèque de formulaires"
+                  : "Vos réponses enregistrées"}
             </p>
           </div>
-          <div className="template-grid">
-            {templates.map((template) => (
-              <article key={template.id}>
-                <h3>{template.name}</h3>
-                <p>{template.description}</p>
-                <Button
-                  onClick={() => {
-                    if (loadTemplate(template.id)) setShowTemplates(false);
-                  }}
-                >
-                  Utiliser {template.name}
-                </Button>
-              </article>
-            ))}
-          </div>
-        </section>
-      )}
-      {notice && (
-        <p role="status" className="notice workspace-notice">
-          {notice}
-        </p>
-      )}
-      {!ready ? (
-        <p role="status" className="workspace-loading">
-          Chargement de vos données…
-        </p>
-      ) : (
-        <div id="content" className="workspace-content" tabIndex={-1}>
-          {view === "editor" && (
-            <div className="editor-workspace">
-              <EditorSidebar controller={controller} />
-              <FormEditor controller={controller} />
-            </div>
-          )}
-          {view === "forms" && <FormCollection controller={controller} />}
-          {view === "answers" && <AnswerCollection controller={controller} />}
+          <p
+            className={
+              unsaved && !previewing ? "draft-indicator" : "saved-indicator"
+            }
+          >
+            {saving
+              ? "Enregistrement…"
+              : previewing
+                ? "Mode test · Sans enregistrement"
+                : unsaved
+                  ? "Saisie non enregistrée"
+                  : "Prêt à travailler"}
+          </p>
         </div>
-      )}
+        {view === "editor" && !responding && (
+          <div className="document-toolbar" aria-label="Actions du formulaire">
+            <Button
+              aria-label="Enregistrer le formulaire"
+              onClick={controller.save}
+              disabled={
+                !controller.writable ||
+                !draft.fields.length ||
+                controller.editingFieldId !== null
+              }
+            >
+              Enregistrer
+            </Button>
+            <Button
+              aria-label="Tester le formulaire"
+              variant="outline"
+              onClick={controller.startPreview}
+              disabled={
+                !draft.fields.length || controller.editingFieldId !== null
+              }
+            >
+              Aperçu
+            </Button>
+            <Button
+              variant="outline"
+              aria-label="Ajouter un champ"
+              aria-controls="field-settings"
+              onClick={() => {
+                document.getElementById("field-name")?.focus();
+                document
+                  .getElementById("field-settings")
+                  ?.scrollIntoView({ block: "center" });
+              }}
+            >
+              + Champ
+            </Button>
+            <Button
+              aria-label="Exporter le brouillon"
+              variant="link"
+              disabled={!draft.fields.length}
+              onClick={() =>
+                download(
+                  "brouillon-formulaire.json",
+                  JSON.stringify([draft], null, 2),
+                )
+              }
+            >
+              Exporter le brouillon
+            </Button>
+          </div>
+        )}
+        {showTemplates && (
+          <section
+            id="template-library"
+            className="template-library"
+            aria-label="Modèles de formulaires"
+          >
+            <div className="template-intro">
+              <div>
+                <h2>Modèles de formulaires</h2>
+                <p>Choisissez un modèle à personnaliser.</p>
+              </div>
+              <Button
+                variant="outline"
+                aria-label="Fermer les modèles"
+                onClick={() => setShowTemplates(false)}
+              >
+                Fermer
+              </Button>
+            </div>
+            <div className="template-grid">
+              {templates.map((template) => (
+                <article key={template.id}>
+                  <span className="template-glyph" aria-hidden="true">
+                    ✳
+                  </span>
+                  <h3>{template.name}</h3>
+                  <p>{template.description}</p>
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      if (loadTemplate(template.id)) setShowTemplates(false);
+                    }}
+                  >
+                    Utiliser {template.name}
+                  </Button>
+                </article>
+              ))}
+            </div>
+          </section>
+        )}
+        {notice && (
+          <p role="status" className="notice workspace-notice">
+            {notice}
+          </p>
+        )}
+        {!ready ? (
+          <div className="workspace-loading">
+            <p role="status">Chargement de vos données…</p>
+          </div>
+        ) : (
+          <>
+            {view === "editor" && (
+              <div
+                className={`editor-workspace${responding ? " response-workspace" : ""}${draft.fields.length ? " has-fields" : ""}`}
+              >
+                <EditorSidebar controller={controller} />
+                <FormEditor controller={controller} />
+              </div>
+            )}
+            {view === "forms" && <FormCollection controller={controller} />}
+            {view === "answers" && <AnswerCollection controller={controller} />}
+          </>
+        )}
+      </main>
       <footer className="workbench-status">
         <p>
           <span className="status-indicator" aria-hidden="true" />
-          Stockage dans ce navigateur
+          Vos données restent dans ce navigateur.
         </p>
         <Button variant="link" onClick={exportBackup}>
           Sauvegarder toutes les données locales
         </Button>
       </footer>
-    </main>
+    </div>
   );
 }

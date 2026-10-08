@@ -29,6 +29,11 @@ const newForm = (): FormData => ({
   fields: [],
 });
 const copy = (form: FormData) => structuredClone(form);
+const fingerprint = (form: FormData) =>
+  JSON.stringify({
+    ...form,
+    fields: form.fields.map((field) => ({ ...field, errorMessage: null })),
+  });
 export function useFormGenerator() {
   const [forms, setForms] = useState<FormData[]>([]);
   const [answers, setAnswers] = useState<FormData[]>([]);
@@ -39,12 +44,15 @@ export function useFormGenerator() {
   });
   const [view, setView] = useState<"editor" | "forms" | "answers">("editor");
   const [responding, setResponding] = useState(false);
+  const [previewing, setPreviewing] = useState(false);
+  const previewSource = useRef<FormData | null>(null);
   const [ready, setReady] = useState(false);
   const [writable, setWritable] = useState(false);
   const [saving, setSaving] = useState(false);
   const mutationInFlight = useRef(false);
   const responseSaved = useRef(false);
   const editingBase = useRef<string | null>(null);
+  const draftBase = useRef("");
   const [notice, setNotice] = useState("");
   const [search, setSearch] = useState("");
   const [type, setType] = useState<FieldType>("text");
@@ -55,8 +63,40 @@ export function useFormGenerator() {
   const [max, setMax] = useState("100");
   const [editingFieldId, setEditingFieldId] = useState<number | null>(null);
   const importRef = useRef<HTMLInputElement>(null);
+  const dirty = ready && fingerprint(draft) !== draftBase.current;
+  const configuredField = draft.fields.find(
+    (field) => field.id === editingFieldId,
+  );
+  const pendingField =
+    !responding &&
+    (editingFieldId === null
+      ? name.trim() !== ""
+      : Boolean(
+          configuredField &&
+          (configuredField.fieldName !== name ||
+            configuredField.fieldType !== type ||
+            configuredField.required !== required ||
+            (configuredField.options
+              ?.map((option) => String(option.value))
+              .join("\n") ?? "") !== options ||
+            (["number", "range"].includes(type) &&
+              (String(configuredField.min ?? 0) !== min ||
+                String(configuredField.max ?? 100) !== max))),
+        ));
+  const unsaved = dirty || pendingField;
   useEffect(() => {
-    setDraft(newForm());
+    if (!unsaved) return;
+    const protect = (event: BeforeUnloadEvent) => {
+      event.preventDefault();
+      event.returnValue = "";
+    };
+    window.addEventListener("beforeunload", protect);
+    return () => window.removeEventListener("beforeunload", protect);
+  }, [unsaved]);
+  useEffect(() => {
+    const initial = newForm();
+    draftBase.current = fingerprint(initial);
+    setDraft(initial);
     try {
       setForms(readLocalData("allForms"));
       setAnswers(readLocalData("allAnswers"));
@@ -122,35 +162,48 @@ export function useFormGenerator() {
       setSaving(false);
     }
   }
+  function canReplaceDraft() {
+    return (
+      !unsaved ||
+      window.confirm(
+        "Remplacer votre saisie non enregistrée ? Annulez pour la conserver ou exportez le brouillon avant de continuer.",
+      )
+    );
+  }
   function reset() {
+    if (!canReplaceDraft()) return false;
     editingBase.current = null;
     responseSaved.current = false;
-    setDraft(newForm());
+    const initial = newForm();
+    draftBase.current = fingerprint(initial);
+    setDraft(initial);
     setResponding(false);
+    setPreviewing(false);
+    previewSource.current = null;
     setView("editor");
     cancelFieldEdit();
+    return true;
   }
   function loadTemplate(id: TemplateId) {
-    if (
-      draft.fields.length &&
-      !window.confirm(
-        "Remplacer le brouillon par ce modèle ? Les formulaires déjà enregistrés sont conservés.",
-      )
-    )
-      return false;
+    if (!canReplaceDraft()) return false;
     editingBase.current = null;
     responseSaved.current = false;
     setDraft(createTemplate(id));
     setResponding(false);
+    setPreviewing(false);
+    previewSource.current = null;
     setView("editor");
     cancelFieldEdit();
-    setNotice("Modèle prêt à personnaliser. Enregistrez-le pour le conserver.");
+    setNotice("");
     return true;
   }
   function duplicateForm(form: FormData) {
+    if (!canReplaceDraft()) return;
     editingBase.current = null;
     setDraft(cloneForm(form));
     setResponding(false);
+    setPreviewing(false);
+    previewSource.current = null;
     setView("editor");
     cancelFieldEdit();
     setNotice(
@@ -299,6 +352,9 @@ export function useFormGenerator() {
       : [...forms, form];
     if (!(await persist("allForms", updated))) return;
     setForms(updated);
+    editingBase.current = JSON.stringify(form);
+    draftBase.current = fingerprint(form);
+    setDraft(form);
     setNotice("Formulaire enregistré dans ce navigateur.");
     setView("forms");
   }
@@ -312,7 +368,8 @@ export function useFormGenerator() {
   }
   async function submit(event: React.FormEvent) {
     event.preventDefault();
-    if (responseSaved.current || mutationInFlight.current) return;
+    if ((!previewing && responseSaved.current) || mutationInFlight.current)
+      return;
     const fields = draft.fields.map((field) => ({
       ...field,
       errorMessage: validateField(field),
@@ -324,21 +381,48 @@ export function useFormGenerator() {
       document.getElementById(`field-${invalid.id}`)?.focus();
       return;
     }
+    if (previewing) {
+      setNotice("Test validé. Aucune réponse n’a été enregistrée.");
+      return;
+    }
     const updated = [...answers, { ...copy(draft), fields }];
     if (!(await persist("allAnswers", updated))) return;
     responseSaved.current = true;
+    draftBase.current = fingerprint({ ...draft, fields });
     setAnswers(updated);
     setResponding(false);
     setNotice("Réponse enregistrée.");
     setView("answers");
   }
   function openForm(form: FormData, answer = false) {
+    if (!canReplaceDraft()) return;
     cancelFieldEdit();
     editingBase.current = answer ? null : JSON.stringify(form);
     responseSaved.current = false;
-    setDraft(answer ? blankResponse(form) : copy(form));
+    const opened = answer ? blankResponse(form) : copy(form);
+    draftBase.current = fingerprint(opened);
+    setDraft(opened);
     setResponding(answer);
+    setPreviewing(false);
+    previewSource.current = null;
     setView("editor");
+    setNotice("");
+  }
+  function startPreview() {
+    previewSource.current = copy(draft);
+    setDraft(blankResponse(draft));
+    setResponding(true);
+    setPreviewing(true);
+    setNotice(
+      "Mode test : votre formulaire est conservé, aucune réponse ne sera enregistrée.",
+    );
+  }
+  function finishPreview() {
+    if (!previewSource.current) return;
+    setDraft(previewSource.current);
+    previewSource.current = null;
+    setResponding(false);
+    setPreviewing(false);
     setNotice("");
   }
   async function removeForm(id: number) {
@@ -386,7 +470,7 @@ export function useFormGenerator() {
   function exportBackup() {
     try {
       download(
-        "formgenerator-sauvegarde.json",
+        "atelier-de-formulaires-sauvegarde.json",
         JSON.stringify(
           {
             forms: localStorage.getItem("allForms"),
@@ -411,9 +495,11 @@ export function useFormGenerator() {
     draft,
     view,
     responding,
+    previewing,
     ready,
     writable: writable && !saving,
     saving,
+    unsaved,
     notice,
     search,
     type,
@@ -426,10 +512,6 @@ export function useFormGenerator() {
     importRef,
     setView,
     setDraft,
-    setResponding: (value: boolean) => {
-      if (value) responseSaved.current = false;
-      setResponding(value);
-    },
     setSearch,
     setType,
     setName,
@@ -450,6 +532,8 @@ export function useFormGenerator() {
     save,
     updateValue,
     submit,
+    startPreview,
+    finishPreview,
     openForm,
     removeForm,
     importData,

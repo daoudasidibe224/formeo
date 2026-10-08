@@ -698,7 +698,7 @@ test("commandes et nouveaux outils utilisables au clavier à toutes les tailles"
   page.on("pageerror", (error) => errors.push(error.message));
   await page.emulateMedia({ reducedMotion: "reduce" });
   await page.goto("/");
-  for (const width of [1440, 800, 390, 320]) {
+  for (const width of [1440, 800, 390, 320, 305]) {
     await page.setViewportSize({ width, height: 1000 });
     await page.getByRole("button", { name: "Modèles", exact: true }).focus();
     await page.keyboard.press("Enter");
@@ -716,7 +716,7 @@ test("commandes et nouveaux outils utilisables au clavier à toutes les tailles"
   await page
     .getByRole("button", { name: "Utiliser Contact", exact: true })
     .click();
-  for (const width of [1440, 800, 390, 320]) {
+  for (const width of [1440, 800, 390, 320, 305]) {
     await page.setViewportSize({ width, height: 1000 });
     expect(
       await page.evaluate(
@@ -737,7 +737,7 @@ test("commandes et nouveaux outils utilisables au clavier à toutes les tailles"
   await page
     .getByRole("button", { name: "Enregistrer la réponse", exact: true })
     .click();
-  for (const width of [1440, 800, 390, 320]) {
+  for (const width of [1440, 800, 390, 320, 305]) {
     await page.setViewportSize({ width, height: 1000 });
     expect(
       await page.evaluate(

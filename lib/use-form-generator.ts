@@ -17,6 +17,12 @@ import {
   writeLocalData,
   StorageConflictError,
 } from "./storage";
+import {
+  cloneField,
+  cloneForm,
+  createTemplate,
+  type TemplateId,
+} from "./productivity";
 const newForm = (): FormData => ({
   id: generateUniqueId(),
   formName: "Mon formulaire",
@@ -47,6 +53,7 @@ export function useFormGenerator() {
   const [options, setOptions] = useState("");
   const [min, setMin] = useState("0");
   const [max, setMax] = useState("100");
+  const [editingFieldId, setEditingFieldId] = useState<number | null>(null);
   const importRef = useRef<HTMLInputElement>(null);
   useEffect(() => {
     setDraft(newForm());
@@ -121,6 +128,75 @@ export function useFormGenerator() {
     setDraft(newForm());
     setResponding(false);
     setView("editor");
+    cancelFieldEdit();
+  }
+  function loadTemplate(id: TemplateId) {
+    if (
+      draft.fields.length &&
+      !window.confirm(
+        "Remplacer le brouillon par ce modèle ? Les formulaires déjà enregistrés sont conservés.",
+      )
+    )
+      return false;
+    editingBase.current = null;
+    responseSaved.current = false;
+    setDraft(createTemplate(id));
+    setResponding(false);
+    setView("editor");
+    cancelFieldEdit();
+    setNotice("Modèle prêt à personnaliser. Enregistrez-le pour le conserver.");
+    return true;
+  }
+  function duplicateForm(form: FormData) {
+    editingBase.current = null;
+    setDraft(cloneForm(form));
+    setResponding(false);
+    setView("editor");
+    cancelFieldEdit();
+    setNotice(
+      "Copie indépendante prête à personnaliser. Ses réponses ne sont pas copiées.",
+    );
+  }
+  function editField(id: number) {
+    const field = draft.fields.find((candidate) => candidate.id === id);
+    if (!field) return;
+    setEditingFieldId(id);
+    setType(field.fieldType);
+    setName(field.fieldName);
+    setRequired(field.required);
+    setOptions(
+      field.options?.map((option) => String(option.value)).join("\n") ?? "",
+    );
+    setMin(String(field.min ?? 0));
+    setMax(String(field.max ?? 100));
+    requestAnimationFrame(() => document.getElementById("field-name")?.focus());
+  }
+  function cancelFieldEdit() {
+    setEditingFieldId(null);
+    setName("");
+    setOptions("");
+  }
+  function duplicateField(id: number) {
+    const index = draft.fields.findIndex((field) => field.id === id);
+    if (index < 0) return;
+    const cloned = cloneField(draft.fields[index]);
+    cloned.fieldName += " — copie";
+    setDraft({
+      ...draft,
+      fields: [
+        ...draft.fields.slice(0, index + 1),
+        cloned,
+        ...draft.fields.slice(index + 1),
+      ],
+    });
+    setNotice("Champ dupliqué. Ses réglages sont indépendants.");
+  }
+  function removeField(id: number) {
+    if (editingFieldId === id) cancelFieldEdit();
+    setDraft({
+      ...draft,
+      fields: draft.fields.filter((field) => field.id !== id),
+    });
   }
   function move(from: number, to: number) {
     if (to < 0 || to >= draft.fields.length) return;
@@ -172,9 +248,27 @@ export function useFormGenerator() {
       Number(max),
       values.map((value) => ({ id: generateUniqueId(), value })),
     );
-    setDraft({ ...draft, fields: [...draft.fields, field] });
-    setName("");
-    setNotice("Champ ajouté.");
+    if (editingFieldId !== null) {
+      if (!draft.fields.some((current) => current.id === editingFieldId)) {
+        cancelFieldEdit();
+        setNotice("Ce champ n’existe plus. Ajoutez un nouveau champ.");
+        return;
+      }
+      setDraft({
+        ...draft,
+        fields: draft.fields.map((current) =>
+          current.id === editingFieldId
+            ? { ...field, id: editingFieldId }
+            : current,
+        ),
+      });
+      cancelFieldEdit();
+      setNotice("Réglages du champ mis à jour.");
+    } else {
+      setDraft({ ...draft, fields: [...draft.fields, field] });
+      setName("");
+      setNotice("Champ ajouté.");
+    }
   }
   async function save() {
     if (!draft.formName.trim() || draft.fields.length === 0) {
@@ -239,6 +333,7 @@ export function useFormGenerator() {
     setView("answers");
   }
   function openForm(form: FormData, answer = false) {
+    cancelFieldEdit();
     editingBase.current = answer ? null : JSON.stringify(form);
     responseSaved.current = false;
     setDraft(answer ? blankResponse(form) : copy(form));
@@ -327,6 +422,7 @@ export function useFormGenerator() {
     options,
     min,
     max,
+    editingFieldId,
     importRef,
     setView,
     setDraft,
@@ -342,6 +438,12 @@ export function useFormGenerator() {
     setMin,
     setMax,
     reset,
+    loadTemplate,
+    duplicateForm,
+    duplicateField,
+    editField,
+    cancelFieldEdit,
+    removeField,
     move,
     onDragEnd,
     addField,

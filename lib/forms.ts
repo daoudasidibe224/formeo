@@ -8,6 +8,7 @@ export const generateUniqueId = () => {
 };
 export type FieldType =
   | "text"
+  | "textarea"
   | "checkbox"
   | "radio"
   | "select"
@@ -40,6 +41,7 @@ export interface FormData {
 export type ViewType = "preview" | "formList" | "answerList";
 export const fieldList: { value: FieldType; text: string }[] = [
   { value: "text", text: "Texte" },
+  { value: "textarea", text: "Texte long" },
   { value: "email", text: "Email" },
   { value: "number", text: "Nombre" },
   { value: "date", text: "Date" },

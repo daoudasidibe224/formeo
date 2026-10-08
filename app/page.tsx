@@ -1,61 +1,134 @@
 "use client";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { useFormGenerator } from "@/lib/use-form-generator";
+import { templates } from "@/lib/productivity";
 import EditorSidebar from "@/components/forms/EditorSidebar";
 import FormEditor from "@/components/forms/FormEditor";
 import FormCollection from "@/components/forms/FormCollection";
 import AnswerCollection from "@/components/forms/AnswerCollection";
 export default function Home() {
   const controller = useFormGenerator();
-  const { forms, answers, view, setView, ready, notice, reset, exportBackup } =
-    controller;
+  const {
+    forms,
+    answers,
+    draft,
+    responding,
+    view,
+    setView,
+    ready,
+    notice,
+    reset,
+    exportBackup,
+    loadTemplate,
+    saving,
+  } = controller;
+  const [showTemplates, setShowTemplates] = useState(false);
   return (
     <main className="workbench">
       <a href="#content" className="skip-link">
         Aller au contenu
       </a>
       <header className="workbench-header">
-        <div className="workbench-brand">
-          <svg viewBox="0 0 32 32" fill="none" aria-hidden="true">
-            <path
-              d="M7 3h12l6 6v20H7V3Z"
-              stroke="currentColor"
-              strokeWidth="2"
-            />
-            <path
-              d="M19 3v7h6M11 15h10M11 20h10M11 25h6"
-              stroke="currentColor"
-              strokeWidth="2"
-            />
-          </svg>
-          <div>
-            <h1>Atelier de formulaires</h1>
-            <p>Conception et réponses · Espace local</p>
-          </div>
+        <div className="workbench-title">
+          <h1>Atelier de formulaires</h1>
+          <span>Sans compte · Dans ce navigateur</span>
         </div>
-        <Button variant="outline" onClick={reset} disabled={!ready}>
-          + Nouveau formulaire
-        </Button>
+        <div className="workbench-commandbar">
+          <div className="file-commands" aria-label="Actions du document">
+            <Button
+              variant="outline"
+              onClick={() => {
+                reset();
+                setShowTemplates(false);
+              }}
+              disabled={!ready || saving}
+            >
+              + Nouveau formulaire
+            </Button>
+            <Button
+              variant="outline"
+              aria-expanded={showTemplates}
+              aria-controls="template-library"
+              onClick={() => setShowTemplates(!showTemplates)}
+              disabled={!ready || saving}
+            >
+              Modèles
+            </Button>
+          </div>
+          <nav aria-label="Navigation principale" className="workspace-tabs">
+            {(
+              [
+                ["editor", "Éditeur"],
+                ["forms", `Formulaires (${forms.length})`],
+                ["answers", `Réponses (${answers.length})`],
+              ] as const
+            ).map(([key, label]) => (
+              <Button
+                key={key}
+                variant={view === key ? "default" : "outline"}
+                className="workspace-tab"
+                aria-current={view === key ? "page" : undefined}
+                onClick={() => {
+                  setView(key);
+                  setShowTemplates(false);
+                }}
+              >
+                {label}
+              </Button>
+            ))}
+          </nav>
+        </div>
+        <div className="document-context">
+          <span>
+            {view === "editor"
+              ? responding
+                ? "SAISIE"
+                : "CONCEPTION"
+              : view === "forms"
+                ? "REGISTRE"
+                : "RÉSULTATS"}
+          </span>
+          <p>
+            {view === "editor"
+              ? draft.formName
+              : view === "forms"
+                ? "Vos documents enregistrés"
+                : "Analyser et exporter les réponses"}
+          </p>
+          <span>{saving ? "Enregistrement…" : "Espace local"}</span>
+        </div>
       </header>
-      <nav aria-label="Navigation principale" className="workspace-tabs">
-        {(
-          [
-            ["editor", "Éditeur"],
-            ["forms", `Formulaires (${forms.length})`],
-            ["answers", `Réponses (${answers.length})`],
-          ] as const
-        ).map(([key, label]) => (
-          <Button
-            key={key}
-            variant={view === key ? "default" : "outline"}
-            className="workspace-tab"
-            aria-current={view === key ? "page" : undefined}
-            onClick={() => setView(key)}
-          >
-            {label}
-          </Button>
-        ))}
-      </nav>
+      {showTemplates && (
+        <section
+          id="template-library"
+          className="template-library"
+          aria-label="Modèles de formulaires"
+        >
+          <div className="template-intro">
+            <h2>Partir d’un modèle</h2>
+            <p>
+              Personnalisez les champs avant d’enregistrer. Les modèles ne
+              contiennent aucune réponse.
+            </p>
+          </div>
+          <div className="template-grid">
+            {templates.map((template) => (
+              <article key={template.id}>
+                <h3>{template.name}</h3>
+                <p>{template.description}</p>
+                <Button
+                  onClick={() => {
+                    if (loadTemplate(template.id)) setShowTemplates(false);
+                  }}
+                >
+                  Utiliser {template.name}
+                </Button>
+              </article>
+            ))}
+          </div>
+        </section>
+      )}
       {notice && (
         <p role="status" className="notice workspace-notice">
           {notice}

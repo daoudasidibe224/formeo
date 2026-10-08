@@ -21,6 +21,10 @@ export default function FormEditor({
     onDragEnd,
     move,
     save,
+    editField,
+    duplicateField,
+    removeField,
+    editingFieldId,
   } = controller;
   return (
     <section className="panel document-sheet min-w-0">
@@ -117,7 +121,23 @@ export default function FormEditor({
                                 )?.text
                               }
                             </span>
-                            <div className="flex gap-1">
+                            <div className="field-toolbar">
+                              <Button
+                                type="button"
+                                variant="outline"
+                                aria-label={`Configurer ${field.fieldName}`}
+                                onClick={() => editField(field.id)}
+                              >
+                                Réglages
+                              </Button>
+                              <Button
+                                type="button"
+                                variant="outline"
+                                aria-label={`Dupliquer ${field.fieldName}`}
+                                onClick={() => duplicateField(field.id)}
+                              >
+                                Dupliquer
+                              </Button>
                               <Button
                                 type="button"
                                 variant="outline"
@@ -139,14 +159,7 @@ export default function FormEditor({
                               <Button
                                 type="button"
                                 variant="destructive"
-                                onClick={() =>
-                                  setDraft({
-                                    ...draft,
-                                    fields: draft.fields.filter(
-                                      (f) => f.id !== field.id,
-                                    ),
-                                  })
-                                }
+                                onClick={() => removeField(field.id)}
                                 aria-label={`Supprimer ${field.fieldName}`}
                               >
                                 Supprimer
@@ -168,7 +181,12 @@ export default function FormEditor({
             </Droppable>
           </DragDropContext>
           <div className="document-actions">
-            <Button onClick={save} disabled={!writable || !draft.fields.length}>
+            <Button
+              onClick={save}
+              disabled={
+                !writable || !draft.fields.length || editingFieldId !== null
+              }
+            >
               Enregistrer le formulaire
             </Button>
             <Button
@@ -177,7 +195,7 @@ export default function FormEditor({
                 setDraft(blankResponse(draft));
                 setResponding(true);
               }}
-              disabled={!draft.fields.length}
+              disabled={!draft.fields.length || editingFieldId !== null}
             >
               Tester le formulaire
             </Button>

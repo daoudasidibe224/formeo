@@ -529,3 +529,224 @@ test("une double soumission enregistre une seule réponse et la nouvelle répons
     page.getByRole("button", { name: "Réponses (2)", exact: true }),
   ).toBeVisible();
 });
+
+test("modèles, réglages validés et copies aux identités indépendantes", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await page.getByRole("button", { name: "Modèles", exact: true }).click();
+  await page
+    .getByRole("button", {
+      name: "Utiliser Inscription à un événement",
+      exact: true,
+    })
+    .click();
+  await expect(page.getByText("5 champ(s)", { exact: true })).toBeVisible();
+  await page
+    .getByRole("button", { name: "Configurer Nombre de places", exact: true })
+    .click();
+  await expect(page.getByLabel("Libellé", { exact: true })).toBeFocused();
+  await page.getByLabel("Maximum", { exact: true }).fill("0");
+  await page
+    .getByRole("button", { name: "Appliquer les réglages", exact: true })
+    .click();
+  await expect(page.getByRole("status")).toContainText("minimum inférieur");
+  await expect(
+    page.getByRole("button", {
+      name: "Enregistrer le formulaire",
+      exact: true,
+    }),
+  ).toBeDisabled();
+  await page.getByLabel("Libellé", { exact: true }).fill("Places réservées");
+  await page.getByLabel("Maximum", { exact: true }).fill("8");
+  await page
+    .getByRole("button", { name: "Appliquer les réglages", exact: true })
+    .click();
+  await page
+    .getByRole("button", { name: "Dupliquer Places réservées", exact: true })
+    .click();
+  await expect(page.getByText("6 champ(s)", { exact: true })).toBeVisible();
+  await page
+    .getByRole("button", { name: "Enregistrer le formulaire", exact: true })
+    .click();
+  await page
+    .getByRole("button", {
+      name: "Dupliquer le formulaire Inscription à un événement",
+      exact: true,
+    })
+    .click();
+  await expect(
+    page.getByLabel("Nom du formulaire", { exact: true }),
+  ).toHaveValue("Inscription à un événement — copie");
+  await page
+    .getByRole("button", { name: "Configurer Places réservées", exact: true })
+    .click();
+  await page.getByLabel("Maximum", { exact: true }).fill("3");
+  await page
+    .getByRole("button", { name: "Appliquer les réglages", exact: true })
+    .click();
+  await page
+    .getByRole("button", { name: "Enregistrer le formulaire", exact: true })
+    .click();
+  await expect(
+    page.getByRole("button", { name: "Formulaires (2)", exact: true }),
+  ).toBeVisible();
+  const forms = await page.evaluate(() => JSON.parse(localStorage.allForms));
+  expect(forms).toHaveLength(2);
+  expect(forms[0].fields[3].max).toBe(8);
+  expect(forms[1].fields[3].max).toBe(3);
+  expect(
+    new Set(
+      forms.flatMap((form: { fields: { id: number }[] }) =>
+        form.fields.map((field) => field.id),
+      ),
+    ).size,
+  ).toBe(12);
+  expect(
+    await page.evaluate(() => localStorage.getItem("allAnswers")),
+  ).toBeNull();
+  await page.reload();
+  await page
+    .getByRole("button", { name: "Formulaires (2)", exact: true })
+    .click();
+  await expect(
+    page.getByRole("heading", {
+      name: "Inscription à un événement — copie",
+      exact: true,
+    }),
+  ).toBeVisible();
+});
+
+test("réponses filtrées, synthèse et CSV ; suppression du bon enregistrement", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await page.getByRole("button", { name: "Modèles", exact: true }).click();
+  await page
+    .getByRole("button", { name: "Utiliser Retour d’expérience", exact: true })
+    .click();
+  await page
+    .getByRole("button", { name: "Enregistrer le formulaire", exact: true })
+    .click();
+  for (const [score, text] of [
+    [0, "À conserver"],
+    [10, "=SUM(1;2)\nTrès agréable"],
+  ] as const) {
+    await page
+      .getByRole("button", { name: "Nouvelle réponse", exact: true })
+      .click();
+    await page.getByLabel("Votre note").fill(String(score));
+    await page.getByLabel("Oui", { exact: true }).check();
+    await page.getByLabel("Ce qui vous a plu", { exact: true }).fill(text);
+    await page
+      .getByRole("button", { name: "Enregistrer la réponse", exact: true })
+      .click();
+    await page
+      .getByRole("button", { name: "Formulaires (1)", exact: true })
+      .click();
+  }
+  await page.getByRole("button", { name: "Réponses (2)", exact: true }).click();
+  await page
+    .getByText("Synthèse des nombres et notes", { exact: true })
+    .click();
+  await expect(
+    page.getByText("Moyenne : 5 · 2 valeur(s)", { exact: true }),
+  ).toBeVisible();
+  await page
+    .getByLabel("Filtrer par formulaire", { exact: true })
+    .selectOption({ label: "Retour d’expérience" });
+  await page
+    .getByLabel("Rechercher dans les réponses", { exact: true })
+    .fill("agréable");
+  await expect(page.locator(".answer-entry")).toHaveCount(1);
+  await expect(
+    page.getByText("Moyenne : 10 · 1 valeur(s)", { exact: true }),
+  ).toBeVisible();
+  const pending = page.waitForEvent("download");
+  await page
+    .getByRole("button", { name: "Exporter en CSV", exact: true })
+    .click();
+  const file = await pending;
+  expect(file.suggestedFilename()).toBe("reponses.csv");
+  const path = await file.path();
+  if (!path) throw new Error("CSV absent");
+  const csv = await readFile(path, "utf8");
+  expect(csv).toContain("'=SUM(1;2)");
+  expect(csv).not.toContain("À conserver");
+  page.once("dialog", (dialog) => dialog.accept());
+  await page
+    .getByRole("button", { name: "Supprimer la réponse 2", exact: true })
+    .click();
+  await expect(
+    page.getByRole("button", { name: "Réponses (1)", exact: true }),
+  ).toBeVisible();
+  expect(
+    await page.evaluate(
+      () => JSON.parse(localStorage.allAnswers)[0].fields[2].value,
+    ),
+  ).toBe("À conserver");
+  await page
+    .getByLabel("Rechercher dans les réponses", { exact: true })
+    .fill("");
+  await expect(page.getByText("À conserver", { exact: true })).toBeVisible();
+});
+
+test("commandes et nouveaux outils utilisables au clavier à toutes les tailles", async ({
+  page,
+}) => {
+  const errors: string[] = [];
+  page.on("pageerror", (error) => errors.push(error.message));
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.goto("/");
+  for (const width of [1440, 800, 390, 320]) {
+    await page.setViewportSize({ width, height: 1000 });
+    await page.getByRole("button", { name: "Modèles", exact: true }).focus();
+    await page.keyboard.press("Enter");
+    await expect(
+      page.getByRole("region", { name: "Modèles de formulaires" }),
+    ).toBeVisible();
+    expect(
+      await page.evaluate(
+        () => document.documentElement.scrollWidth <= innerWidth,
+      ),
+    ).toBe(true);
+    await page.getByRole("button", { name: "Modèles", exact: true }).click();
+  }
+  await page.getByRole("button", { name: "Modèles", exact: true }).click();
+  await page
+    .getByRole("button", { name: "Utiliser Contact", exact: true })
+    .click();
+  for (const width of [1440, 800, 390, 320]) {
+    await page.setViewportSize({ width, height: 1000 });
+    expect(
+      await page.evaluate(
+        () => document.documentElement.scrollWidth <= innerWidth,
+      ),
+    ).toBe(true);
+  }
+  await page
+    .getByRole("button", { name: "Enregistrer le formulaire", exact: true })
+    .click();
+  await page
+    .getByRole("button", { name: "Nouvelle réponse", exact: true })
+    .click();
+  await page.getByLabel("Votre prénom").fill("Essai mobile");
+  await page.getByLabel("Votre email").fill("mobile@example.com");
+  await page.getByLabel("Sujet").selectOption("Projet");
+  await page.getByLabel("Votre demande").fill("Tester les nouveaux outils");
+  await page
+    .getByRole("button", { name: "Enregistrer la réponse", exact: true })
+    .click();
+  for (const width of [1440, 800, 390, 320]) {
+    await page.setViewportSize({ width, height: 1000 });
+    expect(
+      await page.evaluate(
+        () => document.documentElement.scrollWidth <= innerWidth,
+      ),
+    ).toBe(true);
+    await expect(
+      page.getByRole("button", { name: "Exporter en CSV", exact: true }),
+    ).toBeVisible();
+  }
+  expect(errors).toEqual([]);
+});

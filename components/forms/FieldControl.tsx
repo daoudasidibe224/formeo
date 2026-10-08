@@ -45,6 +45,15 @@ export default function FieldControl({
           }
         />
       )}
+      {field.fieldType === "textarea" && (
+        <textarea
+          {...props}
+          required={field.required}
+          rows={4}
+          value={String(field.value)}
+          onChange={(event) => onChange(event.target.value)}
+        />
+      )}
       {field.fieldType === "file" && (
         <p className="text-xs muted">
           Seul le nom du fichier est enregistré, pas son contenu.

@@ -17,6 +17,7 @@ export default function FormCollection({
     setSearch,
     openForm,
     removeForm,
+    duplicateForm,
   } = controller;
   const displayed = forms.filter((form) =>
     form.formName
@@ -81,6 +82,13 @@ export default function FormCollection({
               </Button>
               <Button variant="outline" onClick={() => openForm(form)}>
                 Modifier
+              </Button>
+              <Button
+                variant="outline"
+                aria-label={`Dupliquer le formulaire ${form.formName}`}
+                onClick={() => duplicateForm(form)}
+              >
+                Dupliquer
               </Button>
               <Button
                 variant="destructive"

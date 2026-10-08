@@ -68,43 +68,157 @@ h3 {
   min-height: 100svh;
 }
 .workbench-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  gap: 16px;
-  padding: 22px 32px;
+  display: grid;
   background: #fff;
   border-bottom: 1px solid #c8d0d7;
 }
-.workbench-brand {
+.workbench-title {
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding: 16px 24px;
+}
+.workbench-title h1 {
+  font:
+    500 18px "IBM Plex Mono",
+    monospace;
+  letter-spacing: -0.04em;
+}
+.workbench-title > span {
+  font-size: 12px;
+  color: #526574;
+}
+.workbench-commandbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: stretch;
+  border-top: 1px solid #c8d0d7;
+  background: #fafbfc;
+}
+.file-commands {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 24px;
+  border-right: 1px solid #c8d0d7;
+}
+.file-commands button {
+  font-size: 13px;
+  border-radius: 0;
+}
+.document-context {
   display: flex;
   align-items: center;
   gap: 16px;
+  padding: 10px 32px;
+  border-top: 1px solid #c8d0d7;
+  font:
+    12px "IBM Plex Mono",
+    monospace;
+  color: #526574;
 }
-.workbench-brand svg {
-  width: 34px;
-  height: 34px;
-  flex: 0 0 auto;
+.document-context > span:first-child {
   color: #b83c15;
+  flex: 0 0 auto;
 }
-.workbench-brand h1 {
-  font-family: "IBM Plex Mono", monospace;
-  font-size: clamp(16px, 2vw, 20px);
-  font-weight: 500;
-  letter-spacing: -0.045em;
+.document-context p {
+  margin: 0;
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
-.workbench-brand p {
-  margin: 5px 0 0;
+.template-library {
+  padding: 24px 32px;
+  background: #141c24;
+  color: #f2f5f8;
+}
+.template-intro h2 {
+  font:
+    500 17px "IBM Plex Mono",
+    monospace;
+}
+.template-intro p {
+  font-size: 14px;
+  color: #c3cdd7;
+  margin: 10px 0 18px;
+}
+.template-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+}
+.template-grid article {
+  border: 1px solid #566370;
+  padding: 20px;
+  display: grid;
+  align-content: start;
+  gap: 12px;
+}
+.template-grid h3 {
+  font-size: 16px;
+  font-weight: 600;
+}
+.template-grid p {
+  font-size: 14px;
+  color: #c3cdd7;
+}
+.template-grid button {
+  white-space: normal;
+  height: auto;
+  min-height: 44px;
+}
+.field-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.field-toolbar button {
   font-size: 12px;
-  color: #667481;
+  padding: 8px 10px;
+}
+.answer-filters {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 2fr);
+  gap: 16px;
+}
+.answer-filters label {
+  margin-bottom: 6px;
+}
+.answer-count {
+  margin: 16px 0;
+  font-size: 13px;
+  color: #526574;
+}
+.answer-summary {
+  padding: 16px;
+  margin: 16px 0 24px;
+  border: 1px solid #c8d0d7;
+  background: #fafbfc;
+}
+.answer-summary summary {
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+}
+.answer-summary dl {
+  display: grid;
+  gap: 14px;
+  margin-top: 16px;
+}
+.answer-summary dd {
+  font-size: 14px;
+  color: #526574;
+  margin-top: 4px;
 }
 .workspace-tabs {
   display: flex;
   flex-wrap: wrap;
-  padding: 0 32px;
+  padding: 0;
   background: #fafbfc;
-  border-bottom: 1px solid #c8d0d7;
+  border-bottom: 0;
 }
 .workspace-tabs .workspace-tab {
   border-radius: 0;
@@ -398,21 +512,45 @@ h3 {
 }
 @media (max-width: 640px) {
   .workbench-header {
-    padding: 18px 16px;
-    gap: 15px;
+    padding: 0;
   }
-  .workbench-brand {
+  .workbench-title {
+    justify-content: flex-start;
+    gap: 6px;
+    padding: 16px;
+  }
+  .workbench-title h1 {
+    font-size: 16px;
+    width: 100%;
+  }
+  .file-commands {
+    width: 100%;
+    padding: 10px 12px;
+    border-right: 0;
+    border-bottom: 1px solid #c8d0d7;
+  }
+  .file-commands button:first-child {
+    flex: 1;
+  }
+  .workbench-commandbar .workspace-tabs {
+    width: 100%;
+  }
+  .document-context {
+    padding: 10px 16px;
     gap: 10px;
-  }
-  .workbench-brand svg {
-    width: 26px;
-    height: 26px;
-  }
-  .workbench-brand p {
     font-size: 11px;
   }
-  .workbench-header > button {
-    flex: 1 1 100%;
+  .document-context > span:last-child {
+    display: none;
+  }
+  .template-library {
+    padding: 20px 16px;
+  }
+  .template-grid {
+    grid-template-columns: 1fr;
+  }
+  .answer-filters {
+    grid-template-columns: 1fr;
   }
   .workspace-tabs {
     padding: 0 12px;

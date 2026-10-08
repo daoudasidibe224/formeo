@@ -23,6 +23,8 @@ export default function EditorSidebar({
     setMax,
     required,
     setRequired,
+    editingFieldId,
+    cancelFieldEdit,
   } = controller;
   return (
     <aside className="palette-rail">
@@ -37,7 +39,11 @@ export default function EditorSidebar({
           className="palette-tools"
         >
           <form className="space-y-4" onSubmit={addField}>
-            <h2 className="text-lg font-semibold">Ajouter un champ</h2>
+            <h2 className="text-lg font-semibold">
+              {editingFieldId === null
+                ? "Ajouter un champ"
+                : "Réglages du champ"}
+            </h2>
             <label htmlFor="field-type">Type de champ</label>
             <select
               id="field-type"
@@ -107,8 +113,15 @@ export default function EditorSidebar({
               Réponse obligatoire
             </label>
             <Button type="submit" className="w-full">
-              Ajouter au formulaire
+              {editingFieldId === null
+                ? "Ajouter au formulaire"
+                : "Appliquer les réglages"}
             </Button>
+            {editingFieldId !== null && (
+              <Button type="button" variant="outline" onClick={cancelFieldEdit}>
+                Annuler les réglages
+              </Button>
+            )}
           </form>
         </SpotlightCard>
       )}

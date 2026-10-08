@@ -30,10 +30,12 @@ export async function writeLocalData(
     localStorage.setItem(key, JSON.stringify(data));
   });
 }
-export function download(name: string, content: string): void {
-  const url = URL.createObjectURL(
-    new Blob([content], { type: "application/json" }),
-  );
+export function download(
+  name: string,
+  content: string,
+  mime = "application/json",
+): void {
+  const url = URL.createObjectURL(new Blob([content], { type: mime }));
   const link = document.createElement("a");
   link.href = url;
   link.download = name;

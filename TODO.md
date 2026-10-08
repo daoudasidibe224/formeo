@@ -7,6 +7,6 @@
 - [x] Revue visuelle 1440/800/390/320 ; clavier, erreurs, vide, conflit.
 - [x] Vérifications métier/TypeScript/lint/build/E2E appropriées.
 - [ ] Nouvelle CI du SHA poussé.
-- [ ] Publication gratuite Vercel de la version testée et contrôles HTTPS réels.
-- [ ] Captures finales et bilan des fonctions/limites vérifiées.
+- [x] Publication gratuite Vercel de la version testée et contrôles HTTPS réels.
+- [x] Captures finales et bilan des fonctions/limites vérifiées.
 

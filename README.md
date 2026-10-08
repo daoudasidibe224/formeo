@@ -1,6 +1,6 @@
 # Atelier de formulaires
 
-Dépôt : [atelier-de-formulaires](https://github.com/daoudasidibe224/atelier-de-formulaires).
+[Essayer l’application](https://atelier-de-formulaires.vercel.app) · [Dépôt GitHub](https://github.com/daoudasidibe224/atelier-de-formulaires).
 
 Créez des formulaires et recueillez leurs réponses dans votre navigateur. L’éditeur permet d’ajouter des champs, de les réordonner et de tester le résultat avant de l’enregistrer.
 
@@ -20,6 +20,10 @@ Créez des formulaires et recueillez leurs réponses dans votre navigateur. L’
 - Sauvegarde des données brutes pour récupérer le contenu du stockage local.
 - Export du brouillon si une modification concurrente empêche son enregistrement.
 - Interface adaptée aux petits écrans et aux préférences de réduction des animations.
+
+## Version en ligne
+
+La version publique utilise Vercel Hobby et HTTPS. Aucun compte n’est nécessaire. Les données restent dans le navigateur et sur cette origine : un autre navigateur ou l’aperçu local possède son propre stockage. Les18parcours navigateur ont aussi été vérifiés sur l’URL publique, notamment les conflits entre onglets et les exports.
 
 ## Installation
 

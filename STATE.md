@@ -22,6 +22,8 @@ Nouvelle composition relue à1440/800/390/320, sans débordement ; document visi
 
 Lint, types stricts, compilation et16tests métier passent. Les18tests Chromium de production passent, dont confirmations annulées/acceptées, sauvegardes simultanées, conflits, types, modèles/copies, validation, idempotence, CSV et clavier jusqu’à305px. Audit complet : aucune alerte connue. Les preuves de cette passe sont dans le dossier de travail principal work/logs/form-refonte-* et outputs/screenshots/refonte-form.
 
-## Prochaine étape
+## Publication vérifiée
 
-Commit/push sur la PR en brouillon, CI du SHA courant. Projet Vercel atelier-de-formulaires créé dans l’équipe Hobby existante, framework Next.js/Node24 explicite. Déployer la version vérifiée, contrôler HTTPS depuis un navigateur anonyme puis mettre à jour le lien public et la preuve. Aucun autre projet Vercel modifié.
+Application publique : https://atelier-de-formulaires.vercel.app, Vercel Hobby gratuit, projet atelier-de-formulaires uniquement. Le build distant réussit et l’accès anonyme HTTPS répond200. Les18tests Chromium passent aussi sur cette URL publique. Captures4largeurs et vérification du bouton vers les réglages, de l’aperçu sans réponse et de la bibliothèque : outputs/screenshots/form-public et work/logs/form-public-* dans le dossier principal.
+
+Les deux CI push/pull_request du commit de code f22f419bb2ec0d459d5e769da2e4cf00da998fda sont vertes. La documentation ajoute maintenant le lien de la version publiée ; contrôler les CI du nouveau HEAD, garder la PR en brouillon et la branche par défaut inchangée. Limites local-first/fichiers nom seul explicites dans README.

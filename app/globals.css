@@ -1,44 +1,102 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
-
-@layer components {
-  .box-container {
-    @apply w-full !bg-[#ffffff82];
-  }
-
-  .text-bg-primary-color {
-    @apply text-[#ccc2b8];
-  }
-
-  .text-secondary-color {
-    @apply text-[#b4a094];
-  }
-
-  .bg-primary-color {
-    @apply bg-[#ccc2b8];
-  }
-
-  .bg-secondary-color {
-    @apply bg-[#b4a094];
-  }
-
-  .bg-third-color {
-    @apply bg-[#927b69];
-  }
-
-  .bg-fourth-color {
-    @apply bg-[#927b69];
-  }
+@import "tailwindcss";
+@theme {
+  --font-sans: Arial, Helvetica, sans-serif;
+  --color-primary: #2f5940;
+  --color-primary-foreground: #ffffff;
+  --color-background: #ffffff;
+  --color-foreground: #24392e;
+  --color-muted: #eef2eb;
+  --color-muted-foreground: #627064;
+  --color-border: #cbd2cc;
+  --color-destructive: #a12828;
 }
-
+:root {
+  color-scheme: light;
+}
 body {
-  background-image: url(../public/bg-wave.svg);
-  background-size: cover;
-  background-position: center;
-  background-repeat: no-repeat;
+  margin: 0;
+  background: #f5f4f0;
+  color: #24392e;
+  font-family: Arial, Helvetica, sans-serif;
 }
-
-.btn-common {
-  @apply disabled:bg-gray-400 transition-all duration-300 rounded-lg shadow-sm text-white bg-secondary-color hover:!bg-[#927b69];
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+button {
+  cursor: pointer;
+}
+button:disabled {
+  cursor: not-allowed;
+}
+:focus-visible {
+  outline: 3px solid #ad741c;
+  outline-offset: 3px;
+}
+input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
+select,
+textarea {
+  width: 100%;
+  min-height: 44px;
+  border: 1px solid #cbd2cc;
+  border-radius: 10px;
+  background: white;
+  padding: 0.65rem 0.8rem;
+  color: #24392e;
+}
+input[type="checkbox"],
+input[type="radio"],
+input[type="range"] {
+  accent-color: #2f5940;
+}
+@layer base {
+  label {
+    display: block;
+    font-size: 0.875rem;
+    font-weight: 600;
+  }
+}
+.panel {
+  border: 1px solid #dce0d8;
+  border-radius: 20px;
+  background: white;
+  padding: clamp(1rem, 3vw, 1.75rem);
+  box-shadow: 0 8px 24px #24392e05;
+}
+.danger {
+  color: #a12828;
+}
+button:disabled {
+  opacity: 0.45;
+}
+.muted {
+  color: #627064;
+}
+.field {
+  border: 1px solid #dce0d8;
+  border-radius: 12px;
+  padding: 1rem;
+  background: #fcfdfb;
+}
+.notice {
+  background: #fff6dc;
+  border: 1px solid #e3ce92;
+  color: #664b15;
+  border-radius: 10px;
+  padding: 0.8rem 1rem;
+}
+.spotlight-card.intro {
+  padding: 1.5rem;
+  border-radius: 18px;
+}
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    transition: none !important;
+    scroll-behavior: auto !important;
+  }
 }

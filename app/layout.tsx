@@ -1,22 +1,16 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
 import "./globals.css";
-
-const inter = Inter({ subsets: ["latin"] });
-
 export const metadata: Metadata = {
-  title: "Générateur de Formulaire",
-  description: "Générateur de Formulaire dynamique",
+  title: "Atelier de formulaires | Création et réponses",
+  description:
+    "Créez des formulaires et recueillez leurs réponses dans votre navigateur.",
 };
-
 export default function RootLayout({
   children,
-}: Readonly<{
-  children: React.ReactNode;
-}>) {
+}: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="fr">
-      <body className={inter.className}>{children}</body>
+      <body>{children}</body>
     </html>
   );
 }

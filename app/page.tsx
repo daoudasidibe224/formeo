@@ -1,157 +1,81 @@
 "use client";
-import { useEffect, useState } from "react";
-import { DragDropContext, DropResult } from "react-beautiful-dnd";
-import { FormData, generateUniqueId, ViewType } from "@/lib/utils";
-import FieldChoice from "@/components/FieldChoice";
-import Header from "@/components/Header";
 import { Button } from "@/components/ui/button";
-import PrewievBox from "@/components/PrewievBox";
-import FormList from "@/components/FormList";
-import AnswereList from "@/components/AnswereList";
-
+import { useFormGenerator } from "@/lib/use-form-generator";
+import EditorSidebar from "@/components/forms/EditorSidebar";
+import FormEditor from "@/components/forms/FormEditor";
+import FormCollection from "@/components/forms/FormCollection";
+import AnswerCollection from "@/components/forms/AnswerCollection";
 export default function Home() {
-  const [view, setView] = useState<ViewType>("preview");
-  const [allForms, setAllForms] = useState<FormData[]>([]);
-  const [editMode, setEditMode] = useState(false);
-  const [answerList, setAnswerList] = useState<FormData[]>([]);
-  const [answereMode, setAnswereMode] = useState(false);
-  const [formData, setFormData] = useState<FormData>({
-    id: generateUniqueId(),
-    formName: "Nom du formulaire",
-    fields: [],
-  });
-
-  useEffect(() => {
-    const allFormsData = localStorage.getItem("allForms");
-    if (allFormsData) {
-      setAllForms(JSON.parse(allFormsData));
-    }
-    const answerListData = localStorage.getItem("allAnswers");
-    if (answerListData) {
-      setAnswerList(JSON.parse(answerListData));
-    }
-
-    console.log(editMode);
-    console.log(answereMode);
-  }, []);
-
-  const handleDragEnd = (result: DropResult) => {
-    if (!result.destination) return;
-
-    const updatedFields = Array.from(formData.fields);
-    const [movedField] = updatedFields.splice(result.source.index, 1);
-    updatedFields.splice(result.destination.index, 0, movedField);
-
-    setFormData({ ...formData, fields: updatedFields });
-  };
-
-  const resetForm = () => {
-    setFormData({
-      id: generateUniqueId(),
-      formName: "Nom du formulaire",
-      fields: [],
-    });
-    setAnswereMode(false);
-    setView("preview");
-  };
-
-  const handleOpenFormList = () => {
-    setView("formList");
-  };
-
-  const handleOpenAnswerList = () => {
-    setView("answerList");
-  };
-
-  const handleBack = () => {
-    setView("preview");
-  };
-
+  const controller = useFormGenerator();
+  const { forms, answers, view, setView, ready, notice, reset, exportBackup } =
+    controller;
   return (
-    <main className="min-h-screen w-screen">
-      <Header />
-      <div className="flex flex-col md:flex-row px-4 gap-6 mt-6">
-        <div className="w-[35%] flex flex-col space-y-4">
+    <main className="mx-auto max-w-7xl px-4 py-6 sm:px-8 sm:py-10">
+      <a href="#content" className="sr-only focus:not-sr-only">
+        Aller au contenu
+      </a>
+      <header className="mb-8 flex flex-wrap items-center justify-between gap-5">
+        <div>
+          <p className="text-sm font-semibold tracking-wide muted">
+            ATELIER DE FORMULAIRES
+          </p>
+          <h1 className="mt-2 text-3xl font-semibold tracking-tight sm:text-4xl">
+            Un formulaire, à votre façon.
+          </h1>
+          <p className="mt-3 muted">
+            Composez vos champs. Recueillez vos réponses.
+          </p>
+        </div>
+        <Button onClick={reset} disabled={!ready}>
+          + Nouveau formulaire
+        </Button>
+      </header>
+      <nav
+        aria-label="Navigation principale"
+        className="mb-6 flex flex-wrap gap-2"
+      >
+        {(
+          [
+            ["editor", "Éditeur"],
+            ["forms", `Formulaires (${forms.length})`],
+            ["answers", `Réponses (${answers.length})`],
+          ] as const
+        ).map(([key, label]) => (
           <Button
-            onClick={resetForm}
-            className="btn-common"
-            disabled={!formData.fields.length}
+            key={key}
+            variant={view === key ? "default" : "outline"}
+            aria-current={view === key ? "page" : undefined}
+            onClick={() => setView(key)}
           >
-            <span className="hidden md:block">Nouveau formulaire</span>
+            {label}
           </Button>
-          <FieldChoice formData={formData} setFormData={setFormData} />
-        </div>
-        <div className="w-full flex flex-col space-y-4">
-          <DragDropContext onDragEnd={handleDragEnd}>
-            <div className="flex space-x-4">
-              {view === "preview" && (
-                <Button
-                  className="btn-common w-min"
-                  onClick={handleOpenFormList}
-                >
-                  Liste des formulaires
-                </Button>
-              )}
-              {view === "formList" && (
-                <>
-                  <Button className="btn-common w-min" onClick={handleBack}>
-                    Mode édition
-                  </Button>
-                  <Button
-                    className="btn-common !bg-gray-400/60 w-min"
-                    onClick={handleOpenAnswerList}
-                  >
-                    Réponses
-                  </Button>
-                </>
-              )}
-              {view === "answerList" && (
-                <>
-                  <Button className="btn-common w-min" onClick={handleBack}>
-                    Mode édition
-                  </Button>
-                  <Button
-                    className="btn-common w-min"
-                    onClick={handleOpenFormList}
-                  >
-                    Liste des formulaires
-                  </Button>
-                </>
-              )}
+        ))}
+      </nav>
+      {notice && (
+        <p role="status" className="notice mb-5">
+          {notice}
+        </p>
+      )}
+      {!ready ? (
+        <p role="status">Chargement de vos données…</p>
+      ) : (
+        <div id="content">
+          {view === "editor" && (
+            <div className="grid items-start gap-6 lg:grid-cols-[320px_1fr]">
+              <EditorSidebar controller={controller} />
+              <FormEditor controller={controller} />
             </div>
-            {view === "preview" && (
-              <PrewievBox
-                formData={formData}
-                setFormData={setFormData}
-                resetForm={resetForm}
-                setAllForms={setAllForms}
-                editMode={editMode}
-                setEditMode={setEditMode}
-                setAnswerList={setAnswerList}
-                answereMode={answereMode}
-                setAnswereMode={setAnswereMode}
-                setView={setView}
-              />
-            )}
-            {view === "formList" && (
-              <FormList
-                allForms={allForms}
-                setAllForms={setAllForms}
-                setFormData={setFormData}
-                setView={setView}
-                setEditMode={setEditMode}
-                setAnswereMode={setAnswereMode}
-              />
-            )}
-            {view === "answerList" && (
-              <AnswereList
-                answerList={answerList}
-                setAnswerList={setAnswerList}
-              />
-            )}
-          </DragDropContext>
+          )}
+          {view === "forms" && <FormCollection controller={controller} />}
+          {view === "answers" && <AnswerCollection controller={controller} />}
         </div>
-      </div>
+      )}
+      <footer className="mt-8 flex flex-wrap items-center justify-between gap-4 text-xs muted">
+        <p>Stockage local · Aucun compte nécessaire</p>
+        <Button variant="link" onClick={exportBackup}>
+          Sauvegarder toutes les données locales
+        </Button>
+      </footer>
     </main>
   );
 }

@@ -2,6 +2,7 @@
 const nextConfig = {
   turbopack: { root: process.cwd() },
   poweredByHeader: false,
+  devIndicators: false,
   agentRules: false,
 };
 export default nextConfig;

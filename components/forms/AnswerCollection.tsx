@@ -21,9 +21,9 @@ export default function AnswerCollection({
           Exporter les réponses
         </Button>
       </div>
-      <div className="grid gap-4 sm:grid-cols-2">
+      <div className="answer-register">
         {answers.map((answer, index) => (
-          <article key={index} className="field min-w-0">
+          <article key={index} className="answer-entry min-w-0">
             <div className="mb-4 flex items-start justify-between gap-2">
               <h3 className="text-lg font-semibold break-words">
                 {answer.formName}

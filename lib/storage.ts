@@ -15,14 +15,20 @@ export function readLocalData(key: CollectionKey): FormData[] {
     throw new Error("Identifiants de formulaire dupliqués.");
   return forms;
 }
-export function writeLocalData(
+export async function writeLocalData(
   key: CollectionKey,
   data: FormData[],
   expected: FormData[],
-): void {
-  if (JSON.stringify(readLocalData(key)) !== JSON.stringify(expected))
-    throw new StorageConflictError();
-  localStorage.setItem(key, JSON.stringify(data));
+): Promise<void> {
+  if (!navigator.locks)
+    throw new Error(
+      "Le navigateur ne permet pas de sécuriser les écritures entre onglets.",
+    );
+  await navigator.locks.request("atelier-formulaires-storage", () => {
+    if (JSON.stringify(readLocalData(key)) !== JSON.stringify(expected))
+      throw new StorageConflictError();
+    localStorage.setItem(key, JSON.stringify(data));
+  });
 }
 export function download(name: string, content: string): void {
   const url = URL.createObjectURL(

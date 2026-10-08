@@ -35,6 +35,10 @@ export function useFormGenerator() {
   const [responding, setResponding] = useState(false);
   const [ready, setReady] = useState(false);
   const [writable, setWritable] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const mutationInFlight = useRef(false);
+  const responseSaved = useRef(false);
+  const editingBase = useRef<string | null>(null);
   const [notice, setNotice] = useState("");
   const [search, setSearch] = useState("");
   const [type, setType] = useState<FieldType>("text");
@@ -49,7 +53,11 @@ export function useFormGenerator() {
     try {
       setForms(readLocalData("allForms"));
       setAnswers(readLocalData("allAnswers"));
-      setWritable(true);
+      setWritable(Boolean(navigator.locks));
+      if (!navigator.locks)
+        setNotice(
+          "Ce navigateur ne permet pas de protéger les sauvegardes entre onglets. La lecture et l’export restent disponibles. Ouvrez l’application dans un navigateur récent, sur HTTPS ou localhost, pour enregistrer.",
+        );
     } catch {
       setNotice(
         "Les données locales sont illisibles ou le stockage est indisponible. Exportez une sauvegarde avant de réinitialiser le stockage du navigateur.",
@@ -62,7 +70,7 @@ export function useFormGenerator() {
       try {
         setForms(readLocalData("allForms"));
         setAnswers(readLocalData("allAnswers"));
-        setWritable(true);
+        setWritable(Boolean(navigator.locks));
         setNotice("Données mises à jour depuis un autre onglet.");
       } catch {
         setWritable(false);
@@ -74,15 +82,25 @@ export function useFormGenerator() {
     window.addEventListener("storage", syncStorage);
     return () => window.removeEventListener("storage", syncStorage);
   }, []);
-  function persist(key: "allForms" | "allAnswers", data: FormData[]) {
-    if (!writable) return false;
+  async function persist(key: "allForms" | "allAnswers", data: FormData[]) {
+    if (!writable || mutationInFlight.current) return false;
+    mutationInFlight.current = true;
+    setSaving(true);
     try {
-      writeLocalData(key, data, key === "allForms" ? forms : answers);
+      await writeLocalData(key, data, key === "allForms" ? forms : answers);
       return true;
     } catch (error) {
       if (error instanceof StorageConflictError) {
-        setForms(readLocalData("allForms"));
-        setAnswers(readLocalData("allAnswers"));
+        try {
+          setForms(readLocalData("allForms"));
+          setAnswers(readLocalData("allAnswers"));
+        } catch {
+          setWritable(false);
+          setNotice(
+            "Les données locales sont illisibles. Exportez une sauvegarde avant de les réinitialiser.",
+          );
+          return false;
+        }
         setNotice(
           "Les données ont changé dans un autre onglet. Vérifiez la liste avant de réessayer.",
         );
@@ -92,9 +110,14 @@ export function useFormGenerator() {
         "Le navigateur ne peut pas enregistrer ces données. Libérez de l’espace ou exportez une sauvegarde.",
       );
       return false;
+    } finally {
+      mutationInFlight.current = false;
+      setSaving(false);
     }
   }
   function reset() {
+    editingBase.current = null;
+    responseSaved.current = false;
     setDraft(newForm());
     setResponding(false);
     setView("editor");
@@ -153,16 +176,34 @@ export function useFormGenerator() {
     setName("");
     setNotice("Champ ajouté.");
   }
-  function save() {
+  async function save() {
     if (!draft.formName.trim() || draft.fields.length === 0) {
       setNotice("Donnez un nom au formulaire et ajoutez au moins un champ.");
       return;
     }
     const form = { ...copy(draft), formName: draft.formName.trim() };
+    if (editingBase.current !== null) {
+      try {
+        const actual = readLocalData("allForms").find(
+          (saved) => saved.id === draft.id,
+        );
+        if (JSON.stringify(actual) !== editingBase.current) {
+          setNotice(
+            "Ce formulaire a été modifié ou supprimé dans un autre onglet. Votre brouillon est conservé : exportez-le ou rouvrez la version enregistrée avant de continuer.",
+          );
+          return;
+        }
+      } catch {
+        setNotice(
+          "Le stockage est indisponible. Votre brouillon est conservé.",
+        );
+        return;
+      }
+    }
     const updated = forms.some((f) => f.id === form.id)
       ? forms.map((f) => (f.id === form.id ? form : f))
       : [...forms, form];
-    if (!persist("allForms", updated)) return;
+    if (!(await persist("allForms", updated))) return;
     setForms(updated);
     setNotice("Formulaire enregistré dans ce navigateur.");
     setView("forms");
@@ -175,8 +216,9 @@ export function useFormGenerator() {
       ),
     }));
   }
-  function submit(event: React.FormEvent) {
+  async function submit(event: React.FormEvent) {
     event.preventDefault();
+    if (responseSaved.current || mutationInFlight.current) return;
     const fields = draft.fields.map((field) => ({
       ...field,
       errorMessage: validateField(field),
@@ -189,19 +231,22 @@ export function useFormGenerator() {
       return;
     }
     const updated = [...answers, { ...copy(draft), fields }];
-    if (!persist("allAnswers", updated)) return;
+    if (!(await persist("allAnswers", updated))) return;
+    responseSaved.current = true;
     setAnswers(updated);
     setResponding(false);
     setNotice("Réponse enregistrée.");
     setView("answers");
   }
   function openForm(form: FormData, answer = false) {
+    editingBase.current = answer ? null : JSON.stringify(form);
+    responseSaved.current = false;
     setDraft(answer ? blankResponse(form) : copy(form));
     setResponding(answer);
     setView("editor");
     setNotice("");
   }
-  function removeForm(id: number) {
+  async function removeForm(id: number) {
     if (
       !window.confirm(
         "Supprimer ce formulaire ? Les réponses enregistrées seront conservées.",
@@ -209,7 +254,7 @@ export function useFormGenerator() {
     )
       return;
     const updated = forms.filter((form) => form.id !== id);
-    if (persist("allForms", updated)) {
+    if (await persist("allForms", updated)) {
       setForms(updated);
       setNotice("Formulaire supprimé.");
     }
@@ -229,7 +274,7 @@ export function useFormGenerator() {
         ...forms,
         ...imported.map((form) => ({ ...form, id: generateUniqueId() })),
       ];
-      if (persist("allForms", merged)) {
+      if (await persist("allForms", merged)) {
         setForms(merged);
         setView("forms");
         setNotice(`${imported.length} formulaire(s) importé(s).`);
@@ -260,10 +305,10 @@ export function useFormGenerator() {
       setNotice("Le stockage du navigateur est inaccessible.");
     }
   }
-  function removeAnswer(index: number) {
+  async function removeAnswer(index: number) {
     if (!window.confirm("Supprimer cette réponse ?")) return;
     const updated = answers.filter((_, i) => i !== index);
-    if (persist("allAnswers", updated)) setAnswers(updated);
+    if (await persist("allAnswers", updated)) setAnswers(updated);
   }
   return {
     forms,
@@ -272,7 +317,8 @@ export function useFormGenerator() {
     view,
     responding,
     ready,
-    writable,
+    writable: writable && !saving,
+    saving,
     notice,
     search,
     type,
@@ -284,7 +330,10 @@ export function useFormGenerator() {
     importRef,
     setView,
     setDraft,
-    setResponding,
+    setResponding: (value: boolean) => {
+      if (value) responseSaved.current = false;
+      setResponding(value);
+    },
     setSearch,
     setType,
     setName,

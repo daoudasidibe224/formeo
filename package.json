@@ -14,6 +14,8 @@
     "check:all": "npm run check && npm run test:e2e"
   },
   "dependencies": {
+    "@fontsource/ibm-plex-mono": "^5.3.0",
+    "@fontsource/ibm-plex-sans": "^5.3.0",
     "@hello-pangea/dnd": "18.0.1",
     "@radix-ui/react-slot": "1.4.0",
     "class-variance-authority": "0.7.1",
@@ -42,5 +44,5 @@
   "engines": {
     "node": ">=24.15.0"
   },
-  "description": "Atelier de formulaires : cr\u00e9ation, validation et r\u00e9ponses dans le navigateur"
+  "description": "Atelier de formulaires : création, validation et réponses dans le navigateur"
 }

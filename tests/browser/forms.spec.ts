@@ -1,4 +1,5 @@
 import { test, expect } from "@playwright/test";
+import { readFile } from "node:fs/promises";
 const imported = [
   {
     id: 5,
@@ -97,8 +98,8 @@ test("création, réorganisation au clavier, réponses isolées et persistance",
   await expect
     .poll(() =>
       page.evaluate(() =>
-        JSON.parse(localStorage.allForms)[0]
-          .fields.map((f: { fieldName: string }) => f.fieldName)
+        JSON.parse(localStorage.getItem("allForms") || "[]")[0]
+          ?.fields.map((f: { fieldName: string }) => f.fieldName)
           .join(","),
       ),
     )
@@ -364,5 +365,167 @@ test("les onglets partagent les listes sans perdre le brouillon ouvert", async (
   await other.getByRole("button", { name: "Formulaires (2)" }).click();
   await expect(
     other.getByRole("heading", { name: "Autre formulaire", exact: true }),
+  ).toBeVisible();
+});
+test("deux sauvegardes simultanées entre onglets sont sérialisées sans perte", async ({
+  page,
+  context,
+}) => {
+  await page.goto("/");
+  const other = await context.newPage();
+  await other.goto("/");
+  for (const [tab, name] of [
+    [page, "Premier"],
+    [other, "Second"],
+  ] as const) {
+    await tab.getByLabel("Libellé", { exact: true }).fill("Nom");
+    await tab
+      .getByRole("button", { name: "Ajouter au formulaire", exact: true })
+      .click();
+    await tab.getByLabel("Nom du formulaire", { exact: true }).fill(name);
+  }
+  const lock = page.evaluate(() =>
+    navigator.locks.request("atelier-formulaires-storage", async () => {
+      document.documentElement.dataset.testLockHeld = "yes";
+      await new Promise<void>((resolve) =>
+        document.addEventListener("release-test-lock", () => resolve(), {
+          once: true,
+        }),
+      );
+    }),
+  );
+  await page.waitForFunction(
+    () => document.documentElement.dataset.testLockHeld === "yes",
+  );
+  await Promise.all(
+    [page, other].map((tab) =>
+      tab
+        .getByRole("button", { name: "Enregistrer le formulaire", exact: true })
+        .click(),
+    ),
+  );
+  await page.evaluate(() =>
+    document.dispatchEvent(new Event("release-test-lock")),
+  );
+  await lock;
+  await expect
+    .poll(() =>
+      page.evaluate(
+        () => JSON.parse(localStorage.getItem("allForms") || "[]").length,
+      ),
+    )
+    .toBe(1);
+  await expect(
+    page.getByRole("button", { name: "Formulaires (1)", exact: true }),
+  ).toBeVisible();
+  await expect(
+    other.getByRole("button", { name: "Formulaires (1)", exact: true }),
+  ).toBeVisible();
+  const remaining = (await page
+    .getByRole("button", { name: "Enregistrer le formulaire", exact: true })
+    .count())
+    ? page
+    : other;
+  await remaining
+    .getByRole("button", { name: "Enregistrer le formulaire", exact: true })
+    .click();
+  await expect
+    .poll(() =>
+      page.evaluate(() =>
+        JSON.parse(localStorage.getItem("allForms") || "[]")
+          .map((form: { formName: string }) => form.formName)
+          .sort(),
+      ),
+    )
+    .toEqual(["Premier", "Second"]);
+});
+test("un brouillon périmé ne remplace pas l’édition d’un autre onglet et reste exportable", async ({
+  page,
+  context,
+}) => {
+  await page.goto("/");
+  await page.getByLabel("Libellé", { exact: true }).fill("Nom");
+  await page
+    .getByRole("button", { name: "Ajouter au formulaire", exact: true })
+    .click();
+  await page
+    .getByRole("button", { name: "Enregistrer le formulaire", exact: true })
+    .click();
+  await page.getByRole("button", { name: "Modifier", exact: true }).click();
+  const other = await context.newPage();
+  await other.goto("/");
+  await other
+    .getByRole("button", { name: "Formulaires (1)", exact: true })
+    .click();
+  await other.getByRole("button", { name: "Modifier", exact: true }).click();
+  await other
+    .getByLabel("Nom du formulaire", { exact: true })
+    .fill("Version distante");
+  await other
+    .getByRole("button", { name: "Enregistrer le formulaire", exact: true })
+    .click();
+  await expect(page.getByRole("status")).toContainText("autre onglet");
+  await page
+    .getByLabel("Nom du formulaire", { exact: true })
+    .fill("Brouillon conservé");
+  await page
+    .getByRole("button", { name: "Enregistrer le formulaire", exact: true })
+    .click();
+  await expect(page.getByRole("status")).toContainText(
+    "Votre brouillon est conservé",
+  );
+  expect(
+    await page.evaluate(() => JSON.parse(localStorage.allForms)[0].formName),
+  ).toBe("Version distante");
+  await expect(
+    page.getByLabel("Nom du formulaire", { exact: true }),
+  ).toHaveValue("Brouillon conservé");
+  const pending = page.waitForEvent("download");
+  await page
+    .getByRole("button", { name: "Exporter le brouillon", exact: true })
+    .click();
+  const path = await (await pending).path();
+  if (!path) throw new Error("Téléchargement absent");
+  expect(JSON.parse(await readFile(path, "utf8"))[0].formName).toBe(
+    "Brouillon conservé",
+  );
+});
+test("une double soumission enregistre une seule réponse et la nouvelle réponse reste possible", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await page.getByLabel("Libellé", { exact: true }).fill("Nom");
+  await page
+    .getByRole("button", { name: "Ajouter au formulaire", exact: true })
+    .click();
+  await page
+    .getByRole("button", { name: "Enregistrer le formulaire", exact: true })
+    .click();
+  await page
+    .getByRole("button", { name: "Nouvelle réponse", exact: true })
+    .click();
+  await page.getByLabel("Nom", { exact: true }).fill("Alice");
+  await page.locator("form").evaluate((form: HTMLFormElement) => {
+    form.requestSubmit();
+    form.requestSubmit();
+  });
+  await expect(
+    page.getByRole("button", { name: "Réponses (1)", exact: true }),
+  ).toBeVisible();
+  expect(
+    await page.evaluate(() => JSON.parse(localStorage.allAnswers).length),
+  ).toBe(1);
+  await page
+    .getByRole("button", { name: "Formulaires (1)", exact: true })
+    .click();
+  await page
+    .getByRole("button", { name: "Nouvelle réponse", exact: true })
+    .click();
+  await page.getByLabel("Nom", { exact: true }).fill("Bob");
+  await page
+    .getByRole("button", { name: "Enregistrer la réponse", exact: true })
+    .click();
+  await expect(
+    page.getByRole("button", { name: "Réponses (2)", exact: true }),
   ).toBeVisible();
 });

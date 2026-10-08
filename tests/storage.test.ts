@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { beforeEach, afterEach, describe, expect, it, vi } from "vitest";
 import {
   readLocalData,
   writeLocalData,
@@ -13,14 +13,30 @@ const form: FormData = {
   ],
 };
 afterEach(() => vi.unstubAllGlobals());
+beforeEach(() =>
+  vi.stubGlobal("navigator", {
+    locks: {
+      request: async (_name: string, callback: () => unknown) => callback(),
+    },
+  }),
+);
 describe("frontières du stockage local", () => {
-  it("refuse une écriture périmée sans écraser les données", () => {
+  it("refuse d’écrire sans verrou entre onglets", async () => {
+    const setItem = vi.fn();
+    vi.stubGlobal("navigator", {});
+    vi.stubGlobal("localStorage", { getItem: () => null, setItem });
+    await expect(writeLocalData("allForms", [form], [])).rejects.toThrow(
+      "sécuriser les écritures",
+    );
+    expect(setItem).not.toHaveBeenCalled();
+  });
+  it("refuse une écriture périmée sans écraser les données", async () => {
     const setItem = vi.fn();
     vi.stubGlobal("localStorage", {
       getItem: () => JSON.stringify([form]),
       setItem,
     });
-    expect(() => writeLocalData("allForms", [], [])).toThrow(
+    await expect(writeLocalData("allForms", [], [])).rejects.toThrow(
       StorageConflictError,
     );
     expect(setItem).not.toHaveBeenCalled();
@@ -32,7 +48,7 @@ describe("frontières du stockage local", () => {
     expect(() => readLocalData("allForms")).toThrow("dupliqués");
     expect(readLocalData("allAnswers")).toHaveLength(2);
   });
-  it("propage les échecs de lecture et les quotas sans faux résultat", () => {
+  it("propage les échecs de lecture et les quotas sans faux résultat", async () => {
     vi.stubGlobal("localStorage", {
       getItem: () => {
         throw new Error("Accès refusé");
@@ -45,6 +61,8 @@ describe("frontières du stockage local", () => {
         throw new Error("Quota");
       },
     });
-    expect(() => writeLocalData("allForms", [form], [])).toThrow("Quota");
+    await expect(writeLocalData("allForms", [form], [])).rejects.toThrow(
+      "Quota",
+    );
   });
 });

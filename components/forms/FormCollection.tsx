@@ -64,9 +64,9 @@ export default function FormCollection({
         onChange={(e) => setSearch(e.target.value)}
         placeholder="Nom du formulaire"
       />
-      <div className="mt-6 grid gap-4 sm:grid-cols-2">
+      <div className="collection-index">
         {displayed.map((form) => (
-          <article className="field min-w-0" key={form.id}>
+          <article className="collection-entry min-w-0" key={form.id}>
             <h3 className="text-lg font-semibold break-words">
               {form.formName}
             </h3>
@@ -75,7 +75,7 @@ export default function FormCollection({
               {answers.filter((answer) => answer.id === form.id).length}{" "}
               réponse(s)
             </p>
-            <div className="flex flex-wrap gap-2">
+            <div className="collection-actions">
               <Button onClick={() => openForm(form, true)}>
                 Nouvelle réponse
               </Button>

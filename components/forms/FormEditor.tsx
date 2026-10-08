@@ -4,6 +4,7 @@ import type { FormController } from "@/lib/use-form-generator";
 import { DragDropContext, Draggable, Droppable } from "@hello-pangea/dnd";
 import FieldControl from "./FieldControl";
 import { blankResponse, fieldList } from "@/lib/forms";
+import { download } from "@/lib/storage";
 export default function FormEditor({
   controller,
 }: {
@@ -22,14 +23,12 @@ export default function FormEditor({
     save,
   } = controller;
   return (
-    <section className="panel min-w-0">
+    <section className="panel document-sheet min-w-0">
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
         <h2 className="text-lg font-semibold">
           {responding ? "Répondre au formulaire" : "Votre formulaire"}
         </h2>
-        <span className="rounded-full bg-[#eef2eb] px-3 py-1 text-sm muted">
-          {draft.fields.length} champ(s)
-        </span>
+        <span className="field-count">{draft.fields.length} champ(s)</span>
       </div>
       {responding ? (
         <h3 className="mb-6 text-2xl font-semibold break-words">
@@ -72,7 +71,19 @@ export default function FormEditor({
                   className="space-y-3"
                 >
                   {draft.fields.length === 0 && (
-                    <div className="rounded-xl border border-dashed border-[#cbd2cc] px-5 py-16 text-center">
+                    <div className="document-empty">
+                      <svg viewBox="0 0 48 48" fill="none" aria-hidden="true">
+                        <path
+                          d="M10 5h19l9 9v29H10V5Z"
+                          stroke="currentColor"
+                          strokeWidth="1.5"
+                        />
+                        <path
+                          d="M29 5v10h9M17 23h14M17 30h14M17 37h8"
+                          stroke="currentColor"
+                          strokeWidth="1.5"
+                        />
+                      </svg>
                       <p className="text-lg font-semibold">
                         Tout commence par un champ.
                       </p>
@@ -97,7 +108,7 @@ export default function FormEditor({
                             <span
                               {...drag.dragHandleProps}
                               aria-label={`Déplacer ${field.fieldName}`}
-                              className="rounded px-2 py-1 text-sm muted cursor-grab"
+                              className="field-handle"
                             >
                               ⠿{" "}
                               {
@@ -156,7 +167,7 @@ export default function FormEditor({
               )}
             </Droppable>
           </DragDropContext>
-          <div className="mt-6 flex flex-wrap gap-3">
+          <div className="document-actions">
             <Button onClick={save} disabled={!writable || !draft.fields.length}>
               Enregistrer le formulaire
             </Button>
@@ -169,6 +180,18 @@ export default function FormEditor({
               disabled={!draft.fields.length}
             >
               Tester le formulaire
+            </Button>
+            <Button
+              variant="link"
+              disabled={!draft.fields.length}
+              onClick={() =>
+                download(
+                  "brouillon-formulaire.json",
+                  JSON.stringify([draft], null, 2),
+                )
+              }
+            >
+              Exporter le brouillon
             </Button>
           </div>
         </>

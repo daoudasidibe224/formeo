@@ -10,30 +10,34 @@ export default function Home() {
   const { forms, answers, view, setView, ready, notice, reset, exportBackup } =
     controller;
   return (
-    <main className="mx-auto max-w-7xl px-4 py-6 sm:px-8 sm:py-10">
-      <a href="#content" className="sr-only focus:not-sr-only">
+    <main className="workbench">
+      <a href="#content" className="skip-link">
         Aller au contenu
       </a>
-      <header className="mb-8 flex flex-wrap items-center justify-between gap-5">
-        <div>
-          <p className="text-sm font-semibold tracking-wide muted">
-            ATELIER DE FORMULAIRES
-          </p>
-          <h1 className="mt-2 text-3xl font-semibold tracking-tight sm:text-4xl">
-            Un formulaire, à votre façon.
-          </h1>
-          <p className="mt-3 muted">
-            Composez vos champs. Recueillez vos réponses.
-          </p>
+      <header className="workbench-header">
+        <div className="workbench-brand">
+          <svg viewBox="0 0 32 32" fill="none" aria-hidden="true">
+            <path
+              d="M7 3h12l6 6v20H7V3Z"
+              stroke="currentColor"
+              strokeWidth="2"
+            />
+            <path
+              d="M19 3v7h6M11 15h10M11 20h10M11 25h6"
+              stroke="currentColor"
+              strokeWidth="2"
+            />
+          </svg>
+          <div>
+            <h1>Atelier de formulaires</h1>
+            <p>Conception et réponses · Espace local</p>
+          </div>
         </div>
-        <Button onClick={reset} disabled={!ready}>
+        <Button variant="outline" onClick={reset} disabled={!ready}>
           + Nouveau formulaire
         </Button>
       </header>
-      <nav
-        aria-label="Navigation principale"
-        className="mb-6 flex flex-wrap gap-2"
-      >
+      <nav aria-label="Navigation principale" className="workspace-tabs">
         {(
           [
             ["editor", "Éditeur"],
@@ -44,6 +48,7 @@ export default function Home() {
           <Button
             key={key}
             variant={view === key ? "default" : "outline"}
+            className="workspace-tab"
             aria-current={view === key ? "page" : undefined}
             onClick={() => setView(key)}
           >
@@ -52,16 +57,18 @@ export default function Home() {
         ))}
       </nav>
       {notice && (
-        <p role="status" className="notice mb-5">
+        <p role="status" className="notice workspace-notice">
           {notice}
         </p>
       )}
       {!ready ? (
-        <p role="status">Chargement de vos données…</p>
+        <p role="status" className="workspace-loading">
+          Chargement de vos données…
+        </p>
       ) : (
-        <div id="content">
+        <div id="content" className="workspace-content" tabIndex={-1}>
           {view === "editor" && (
-            <div className="grid items-start gap-6 lg:grid-cols-[320px_1fr]">
+            <div className="editor-workspace">
               <EditorSidebar controller={controller} />
               <FormEditor controller={controller} />
             </div>
@@ -70,8 +77,11 @@ export default function Home() {
           {view === "answers" && <AnswerCollection controller={controller} />}
         </div>
       )}
-      <footer className="mt-8 flex flex-wrap items-center justify-between gap-4 text-xs muted">
-        <p>Stockage local · Aucun compte nécessaire</p>
+      <footer className="workbench-status">
+        <p>
+          <span className="status-indicator" aria-hidden="true" />
+          Stockage dans ce navigateur
+        </p>
         <Button variant="link" onClick={exportBackup}>
           Sauvegarder toutes les données locales
         </Button>

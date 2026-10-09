@@ -1,5 +1,5 @@
 {
-  "name": "atelier-de-formulaires",
+  "name": "formeo",
   "version": "0.2.0",
   "private": true,
   "scripts": {
@@ -44,5 +44,5 @@
   "engines": {
     "node": ">=24.15.0"
   },
-  "description": "Atelier de formulaires : création, validation et réponses dans le navigateur"
+  "description": "Créateur de formulaires"
 }

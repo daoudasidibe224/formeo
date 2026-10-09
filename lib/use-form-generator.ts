@@ -470,7 +470,7 @@ export function useFormGenerator() {
   function exportBackup() {
     try {
       download(
-        "atelier-de-formulaires-sauvegarde.json",
+        "formeo-sauvegarde.json",
         JSON.stringify(
           {
             forms: localStorage.getItem("allForms"),

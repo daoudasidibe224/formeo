@@ -1,6 +1,8 @@
-# Atelier de formulaires
+# Forméo
 
-[Essayer l’application](https://atelier-de-formulaires.vercel.app) · [Dépôt GitHub](https://github.com/daoudasidibe224/atelier-de-formulaires).
+Créateur de formulaires.
+
+[Essayer l’application](https://formeo-daouda.vercel.app) · [Dépôt GitHub](https://github.com/daoudasidibe224/formeo).
 
 Créez des formulaires et recueillez leurs réponses dans votre navigateur. L’éditeur permet d’ajouter des champs, de les réordonner et de tester le résultat avant de l’enregistrer.
 
@@ -23,7 +25,7 @@ Créez des formulaires et recueillez leurs réponses dans votre navigateur. L’
 
 ## Version en ligne
 
-La version publique utilise Vercel Hobby et HTTPS. Aucun compte n’est nécessaire. Les données restent dans le navigateur et sur cette origine : un autre navigateur ou l’aperçu local possède son propre stockage. Les18parcours navigateur ont aussi été vérifiés sur l’URL publique, notamment les conflits entre onglets et les exports.
+La version publique utilise Vercel Hobby et HTTPS. Aucun compte n’est nécessaire. Les données restent dans le navigateur et sur cette origine : un autre navigateur ou l’aperçu local possède son propre stockage. Les 18 parcours navigateur couvrent notamment les conflits entre onglets et les exports.
 
 ## Installation
 

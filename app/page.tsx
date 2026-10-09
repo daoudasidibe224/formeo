@@ -69,8 +69,8 @@ export default function Home() {
               />
             </svg>
             <div>
-              <h1>Atelier de formulaires</h1>
-              <p>Un espace pour vos questions.</p>
+              <h1>Forméo</h1>
+              <p>Créateur de formulaires</p>
             </div>
           </div>
           <div className="studio-commands">
